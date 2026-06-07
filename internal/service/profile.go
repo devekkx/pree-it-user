@@ -8,10 +8,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/devekkx/pree-it-user/db/sqlc"
 	"github.com/devekkx/pree-it-user/internal/event"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 )
@@ -151,16 +151,16 @@ func (s *ProfileService) UpdateProfile(ctx context.Context, userID uuid.UUID, pa
 	dbParams := sqlc.UpdateProfileParams{ID: userID}
 
 	if params.DisplayName != nil {
-		dbParams.DisplayName = pgtype.Text{String: *params.DisplayName, Valid: true}
+		dbParams.DisplayName = params.DisplayName
 	}
 	if params.Username != nil {
-		dbParams.Username = pgtype.Text{String: *params.Username, Valid: true}
+		dbParams.Username = params.Username
 	}
 	if params.AvatarURL != nil {
-		dbParams.AvatarUrl = pgtype.Text{String: *params.AvatarURL, Valid: true}
+		dbParams.AvatarUrl = params.AvatarURL
 	}
 	if params.Bio != nil {
-		dbParams.Bio = pgtype.Text{String: *params.Bio, Valid: true}
+		dbParams.Bio = params.Bio
 	}
 
 	profile, err := s.queries.UpdateProfile(ctx, dbParams)
@@ -323,7 +323,7 @@ func sanitizeUsername(input string) string {
 	return result
 }
 
-func profileToResult(p sqlc.Profile) *GetProfileResult {
+func profileToResult(p sqlc.UserSchemaProfile) *GetProfileResult {
 	result := &GetProfileResult{
 		ID:          p.ID,
 		DisplayName: p.DisplayName,
@@ -332,8 +332,8 @@ func profileToResult(p sqlc.Profile) *GetProfileResult {
 		Bio:         p.Bio,
 		CreatedAt:   p.CreatedAt.Format("2006-01-02T15:04:05Z"),
 	}
-	if p.LastSeenAt != nil {
-		ts := p.LastSeenAt.Format("2006-01-02T15:04:05Z")
+	if p.LastSeenAt.Valid {
+		ts := p.LastSeenAt.Time.Format("2006-01-02T15:04:05Z")
 		result.LastSeenAt = &ts
 	}
 	return result

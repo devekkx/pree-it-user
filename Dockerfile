@@ -1,5 +1,5 @@
 ### Build stage ###
-FROM golang:1.23-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 RUN apk add --no-cache git ca-certificates
 
@@ -15,7 +15,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 
 
 ### Production stage ###
-FROM alpine:3.19 AS production
+FROM alpine:3.22.4 AS production
 
 RUN apk add --no-cache ca-certificates tzdata \
     && addgroup -S appgroup \
@@ -34,7 +34,7 @@ ENTRYPOINT ["user-service"]
 
 
 ### Development stage ###
-FROM golang:1.23-alpine AS dev
+FROM golang:1.26-alpine AS dev
 
 RUN apk add --no-cache git
 

@@ -1,18 +1,18 @@
 -- name: CreateProfile :one
-INSERT INTO profiles (id, display_name, username, created_at, updated_at)
+INSERT INTO user_schema.profiles (id, display_name, username, created_at, updated_at)
 VALUES ($1, $2, $3, NOW(), NOW())
 RETURNING *;
 
 -- name: GetProfileByID :one
-SELECT * FROM profiles
+SELECT * FROM user_schema.profiles
 WHERE id = $1 AND is_active = true;
 
 -- name: GetProfileByUsername :one
-SELECT * FROM profiles
+SELECT * FROM user_schema.profiles
 WHERE username = $1 AND is_active = true;
 
 -- name: UpdateProfile :one
-UPDATE profiles
+UPDATE user_schema.profiles
 SET
     display_name = COALESCE(sqlc.narg('display_name'), display_name),
     username     = COALESCE(sqlc.narg('username'), username),
@@ -23,7 +23,7 @@ WHERE id = $1 AND is_active = true
 RETURNING *;
 
 -- name: SearchProfiles :many
-SELECT * FROM profiles
+SELECT * FROM user_schema.profiles
 WHERE is_active = true
   AND (
       display_name ILIKE '%' || @query::text || '%'
@@ -40,20 +40,20 @@ ORDER BY
 LIMIT $1 OFFSET $2;
 
 -- name: UpdateLastSeen :exec
-UPDATE profiles
+UPDATE user_schema.profiles
 SET last_seen_at = NOW()
 WHERE id = $1 AND is_active = true;
 
 -- name: DeactivateProfile :exec
-UPDATE profiles
+UPDATE user_schema.profiles
 SET is_active = false, updated_at = NOW()
 WHERE id = $1;
 
 -- name: CheckUsernameExists :one
 SELECT EXISTS(
-    SELECT 1 FROM profiles WHERE username = $1
+    SELECT 1 FROM user_schema.profiles WHERE username = $1
 ) AS exists;
 
 -- name: GetProfilesByIDs :many
-SELECT * FROM profiles
+SELECT * FROM user_schema.profiles
 WHERE id = ANY($1::uuid[]) AND is_active = true;

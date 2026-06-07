@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,7 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	dbembed "github.com/devekkx/pree-it-user/db"
+	"github.com/devekkx/pree-it-user/db"
+	"github.com/devekkx/pree-it-user/db/sqlc"
 	"github.com/devekkx/pree-it-user/internal/config"
 	"github.com/devekkx/pree-it-user/internal/event"
 	"github.com/devekkx/pree-it-user/internal/handler"
@@ -19,7 +19,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
-	"github.com/pressly/goose/v3"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
@@ -67,7 +66,7 @@ func main() {
 	logger.Info("database connected")
 
 	// --- Migrations ---
-	if err := runMigrations(cfg); err != nil {
+	if err := db.RunMigrations(ctx, pool); err != nil {
 		logger.Fatal("failed to run migrations", zap.Error(err))
 	}
 	logger.Info("migrations complete")
@@ -151,31 +150,6 @@ func main() {
 	}
 
 	logger.Info("user-service stopped")
-}
-
-func runMigrations(cfg *config.Config) error {
-	dsn := fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName, cfg.DBSSLMode,
-	)
-
-	db, err := sql.Open("pgx", dsn)
-	if err != nil {
-		return fmt.Errorf("opening db for migrations: %w", err)
-	}
-	defer db.Close()
-
-	goose.SetBaseFS(dbembed.Migrations)
-
-	if err := goose.SetDialect("postgres"); err != nil {
-		return fmt.Errorf("setting goose dialect: %w", err)
-	}
-
-	if err := goose.Up(db, "migrations"); err != nil {
-		return fmt.Errorf("running migrations: %w", err)
-	}
-
-	return nil
 }
 
 func initTracer(cfg *config.Config) (func(), error) {

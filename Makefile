@@ -1,25 +1,32 @@
-SQLC  := sqlc
-GOOSE := goose
-PG_DSN   := "host=localhost user=preeit_admin password=$$(cat ../../preeit-infra/secrets/postgres_password.txt) dbname=preeit sslmode=disable"
+.PHONY: build run test lint sqlc migrate-up migrate-down tidy
 
-.PHONY: sqlc-gen sqlc-vet migrate-create migrate-up migrate-down migrate-status
+SERVICE_NAME := user-service
+BINARY := bin/$(SERVICE_NAME)
 
-sqlc-gen:
-	$(SQLC) generate
+build:
+	CGO_ENABLED=0 go build -ldflags="-s -w" -o $(BINARY) ./cmd/user
 
-# sqlc vet catches query/schema drift at codegen time - run in CI.
-sqlc-vet:
-	$(SQLC) vet
+run:
+	go run ./cmd/user
+
+test:
+	go test -race -cover ./...
+
+lint:
+	golangci-lint run ./...
+
+sqlc:
+	sqlc generate
 
 migrate-create:
 	@if [ -z "$(name)" ]; then echo "Usage: make migrate-create name=<migration_name>"; exit 1; fi
 	goose -dir db/migrations create $(name) sql
 
 migrate-up:
-	$(GOOSE) -dir db/migrations postgres $(PG_DSN) up
+	goose -dir db/migrations postgres "$(DATABASE_URL)" up
 
 migrate-down:
-	$(GOOSE) -dir db/migrations postgres $(PG_DSN) down
+	goose -dir db/migrations postgres "$(DATABASE_URL)" down
 
-migrate-status:
-	$(GOOSE) -dir db/migrations postgres $(PG_DSN) status
+tidy:
+	go mod tidy
